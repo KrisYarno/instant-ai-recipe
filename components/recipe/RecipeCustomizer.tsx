@@ -49,7 +49,7 @@ export default function RecipeCustomizer({
 }: RecipeCustomizerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedColor, setSelectedColor] = useState(currentColor)
-  const [labelValue, setLabelValue] = useState(currentLabel)
+  const [labelValue, setLabelValue] = useState(currentLabel || '')
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
@@ -57,7 +57,7 @@ export default function RecipeCustomizer({
   // Update local state when props change
   useEffect(() => {
     setSelectedColor(currentColor)
-    setLabelValue(currentLabel)
+    setLabelValue(currentLabel || '')
   }, [currentColor, currentLabel])
 
   const handleColorChange = async (color: string) => {
@@ -193,7 +193,7 @@ export default function RecipeCustomizer({
                 )}
               </div>
               <p className="text-xs text-gray-500">
-                {labelValue.length}/30 characters
+                {labelValue?.length || 0}/30 characters
               </p>
             </div>
 
