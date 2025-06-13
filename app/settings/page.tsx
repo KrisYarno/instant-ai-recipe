@@ -5,11 +5,9 @@ import { motion } from 'framer-motion'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 
 export default function SettingsPage() {
   const { data: session } = useSession()
-  const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 

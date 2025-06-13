@@ -1,17 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import RecipeCard from '@/components/recipe/RecipeCard'
 import ModificationChat from '@/components/recipe/ModificationChat'
+import type { Recipe } from '@/types/recipe'
 
 export default function SavedRecipesPage() {
-  const { data: session } = useSession()
-  const [recipes, setRecipes] = useState<any[]>([])
+  const [recipes, setRecipes] = useState<Recipe[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedRecipe, setSelectedRecipe] = useState<any>(null)
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [showModificationChat, setShowModificationChat] = useState(false)
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest')
@@ -168,7 +166,7 @@ export default function SavedRecipesPage() {
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'name')}
               className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="newest">Newest First</option>

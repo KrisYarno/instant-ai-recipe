@@ -27,7 +27,7 @@ const categories = [
 ]
 
 export default function PantryPage() {
-  const { data: session } = useSession()
+  const { } = useSession()
   const router = useRouter()
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([])
   const [newItem, setNewItem] = useState({

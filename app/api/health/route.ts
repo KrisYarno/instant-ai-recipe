@@ -12,7 +12,7 @@ export async function GET() {
       service: 'instant-ai-recipe',
       database: 'connected'
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       status: 'error', 
       timestamp: new Date().toISOString(),

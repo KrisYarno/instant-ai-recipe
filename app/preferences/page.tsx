@@ -31,7 +31,7 @@ const cuisineOptions = [
 ]
 
 export default function PreferencesPage() {
-  const { data: session } = useSession()
+  const { } = useSession()
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   const [preferences, setPreferences] = useState<UserPreferences>({

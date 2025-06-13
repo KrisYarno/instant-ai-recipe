@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import RecipeCard from '@/components/recipe/RecipeCard'
 import ModificationChat from '@/components/recipe/ModificationChat'
+import type { Recipe } from '@/types/recipe'
 
 export default function HomePage() {
   const { data: session, status } = useSession()
@@ -14,7 +15,7 @@ export default function HomePage() {
   const [usePreferences, setUsePreferences] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [currentRecipe, setCurrentRecipe] = useState<any>(null)
+  const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null)
   const [showModificationChat, setShowModificationChat] = useState(false)
 
   useEffect(() => {

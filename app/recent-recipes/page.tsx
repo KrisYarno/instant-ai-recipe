@@ -1,17 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import RecipeCard from '@/components/recipe/RecipeCard'
 import ModificationChat from '@/components/recipe/ModificationChat'
+import type { Recipe } from '@/types/recipe'
 
 export default function RecentRecipesPage() {
   const { data: session } = useSession()
-  const [recipes, setRecipes] = useState<any[]>([])
+  const [recipes, setRecipes] = useState<Recipe[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedRecipe, setSelectedRecipe] = useState<any>(null)
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [showModificationChat, setShowModificationChat] = useState(false)
 
   useEffect(() => {

@@ -61,7 +61,7 @@ const commonIngredients: Ingredient[] = [
 ]
 
 export default function LikesDislikesPage() {
-  const { data: session } = useSession()
+  const { } = useSession()
   const [likedIngredients, setLikedIngredients] = useState<string[]>([])
   const [dislikedIngredients, setDislikedIngredients] = useState<string[]>([])
   const [customIngredient, setCustomIngredient] = useState('')
