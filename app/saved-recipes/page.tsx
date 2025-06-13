@@ -84,7 +84,7 @@ export default function SavedRecipesPage() {
   }
 
   // Get unique categories from recipes
-  const categories = Array.from(new Set(recipes.map(r => r.cuisine).filter(Boolean)))
+  const categories = Array.from(new Set(recipes.map(r => r.cuisine).filter((c): c is string => Boolean(c))))
 
   // Filter and sort recipes
   const filteredRecipes = recipes.filter(recipe => 
