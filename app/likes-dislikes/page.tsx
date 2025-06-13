@@ -4,70 +4,24 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/use-toast'
+import { Trash2 } from 'lucide-react'
 
-interface Ingredient {
-  name: string
-  category: string
+interface PreferenceCard {
+  ingredient: string
+  status: 'liked' | 'disliked'
 }
-
-const commonIngredients: Ingredient[] = [
-  // Proteins
-  { name: 'Chicken', category: 'Proteins' },
-  { name: 'Beef', category: 'Proteins' },
-  { name: 'Pork', category: 'Proteins' },
-  { name: 'Fish', category: 'Proteins' },
-  { name: 'Shrimp', category: 'Proteins' },
-  { name: 'Tofu', category: 'Proteins' },
-  { name: 'Eggs', category: 'Proteins' },
-  { name: 'Beans', category: 'Proteins' },
-  
-  // Vegetables
-  { name: 'Onions', category: 'Vegetables' },
-  { name: 'Garlic', category: 'Vegetables' },
-  { name: 'Tomatoes', category: 'Vegetables' },
-  { name: 'Bell Peppers', category: 'Vegetables' },
-  { name: 'Carrots', category: 'Vegetables' },
-  { name: 'Celery', category: 'Vegetables' },
-  { name: 'Mushrooms', category: 'Vegetables' },
-  { name: 'Spinach', category: 'Vegetables' },
-  { name: 'Broccoli', category: 'Vegetables' },
-  { name: 'Cauliflower', category: 'Vegetables' },
-  
-  // Grains
-  { name: 'Rice', category: 'Grains' },
-  { name: 'Pasta', category: 'Grains' },
-  { name: 'Quinoa', category: 'Grains' },
-  { name: 'Oats', category: 'Grains' },
-  { name: 'Bread', category: 'Grains' },
-  
-  // Dairy
-  { name: 'Milk', category: 'Dairy' },
-  { name: 'Cheese', category: 'Dairy' },
-  { name: 'Yogurt', category: 'Dairy' },
-  { name: 'Butter', category: 'Dairy' },
-  { name: 'Cream', category: 'Dairy' },
-  
-  // Spices & Herbs
-  { name: 'Salt', category: 'Spices' },
-  { name: 'Black Pepper', category: 'Spices' },
-  { name: 'Cumin', category: 'Spices' },
-  { name: 'Paprika', category: 'Spices' },
-  { name: 'Oregano', category: 'Spices' },
-  { name: 'Basil', category: 'Spices' },
-  { name: 'Thyme', category: 'Spices' },
-  { name: 'Cilantro', category: 'Spices' },
-  { name: 'Ginger', category: 'Spices' },
-  { name: 'Turmeric', category: 'Spices' },
-]
 
 export default function LikesDislikesPage() {
   const { } = useSession()
-  const [likedIngredients, setLikedIngredients] = useState<string[]>([])
-  const [dislikedIngredients, setDislikedIngredients] = useState<string[]>([])
+  const [preferences, setPreferences] = useState<PreferenceCard[]>([])
   const [customIngredient, setCustomIngredient] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All')
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchPreferences()
@@ -78,8 +32,22 @@ export default function LikesDislikesPage() {
       const response = await fetch('/api/likes-dislikes')
       if (response.ok) {
         const data = await response.json()
-        setLikedIngredients(data.likedIngredients || [])
-        setDislikedIngredients(data.dislikedIngredients || [])
+        
+        // Convert separate arrays into unified card format
+        const cards: PreferenceCard[] = []
+        
+        data.likedIngredients?.forEach((ingredient: string) => {
+          cards.push({ ingredient, status: 'liked' })
+        })
+        
+        data.dislikedIngredients?.forEach((ingredient: string) => {
+          cards.push({ ingredient, status: 'disliked' })
+        })
+        
+        // Sort alphabetically by ingredient name
+        cards.sort((a, b) => a.ingredient.localeCompare(b.ingredient))
+        
+        setPreferences(cards)
       }
     } catch (error) {
       console.error('Error fetching preferences:', error)
@@ -88,76 +56,108 @@ export default function LikesDislikesPage() {
     }
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
+  const togglePreference = async (ingredient: string) => {
+    const currentCard = preferences.find(p => p.ingredient === ingredient)
+    if (!currentCard) return
+
+    const newStatus = currentCard.status === 'liked' ? 'disliked' : 'liked'
+    
+    // Optimistically update UI
+    setPreferences(prev => 
+      prev.map(p => 
+        p.ingredient === ingredient 
+          ? { ...p, status: newStatus }
+          : p
+      )
+    )
+
     try {
-      const response = await fetch('/api/likes-dislikes', {
-        method: 'PUT',
+      // First remove from current status
+      await fetch('/api/likes-dislikes', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          likedIngredients,
-          dislikedIngredients
+          ingredient,
+          action: 'remove',
+          type: currentCard.status === 'liked' ? 'like' : 'dislike'
         })
       })
 
-      if (response.ok) {
-        // Show success feedback
+      // Then add to new status
+      await fetch('/api/likes-dislikes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ingredient,
+          action: 'add',
+          type: newStatus === 'liked' ? 'like' : 'dislike'
+        })
+      })
+    } catch (error) {
+      console.error('Error toggling preference:', error)
+      // Revert on error
+      fetchPreferences()
+    }
+  }
+
+  const deletePreference = async (ingredient: string) => {
+    // Optimistically remove from UI
+    setPreferences(prev => prev.filter(p => p.ingredient !== ingredient))
+
+    try {
+      const response = await fetch('/api/likes-dislikes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ingredient })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete')
       }
     } catch (error) {
-      console.error('Error saving preferences:', error)
-    } finally {
-      setIsSaving(false)
+      console.error('Error deleting preference:', error)
+      // Revert on error
+      fetchPreferences()
     }
   }
 
-  const toggleIngredient = (ingredient: string, type: 'like' | 'dislike') => {
-    if (type === 'like') {
-      if (likedIngredients.includes(ingredient)) {
-        setLikedIngredients(likedIngredients.filter(i => i !== ingredient))
-      } else {
-        setLikedIngredients([...likedIngredients, ingredient])
-        // Remove from dislikes if it's there
-        setDislikedIngredients(dislikedIngredients.filter(i => i !== ingredient))
-      }
-    } else {
-      if (dislikedIngredients.includes(ingredient)) {
-        setDislikedIngredients(dislikedIngredients.filter(i => i !== ingredient))
-      } else {
-        setDislikedIngredients([...dislikedIngredients, ingredient])
-        // Remove from likes if it's there
-        setLikedIngredients(likedIngredients.filter(i => i !== ingredient))
-      }
-    }
-  }
-
-  const addCustomIngredient = (type: 'like' | 'dislike') => {
+  const addNewPreference = async (status: 'liked' | 'disliked') => {
     if (!customIngredient.trim()) return
-    
+
     const ingredient = customIngredient.trim()
-    if (type === 'like') {
-      if (!likedIngredients.includes(ingredient)) {
-        setLikedIngredients([...likedIngredients, ingredient])
-        setDislikedIngredients(dislikedIngredients.filter(i => i !== ingredient))
-      }
-    } else {
-      if (!dislikedIngredients.includes(ingredient)) {
-        setDislikedIngredients([...dislikedIngredients, ingredient])
-        setLikedIngredients(likedIngredients.filter(i => i !== ingredient))
-      }
+    
+    // Check if already exists
+    if (preferences.some(p => p.ingredient.toLowerCase() === ingredient.toLowerCase())) {
+      toast({
+        title: 'Ingredient already exists',
+        description: 'This ingredient is already in your preferences.',
+        variant: 'destructive'
+      })
+      return
     }
+
+    // Optimistically add to UI
+    setPreferences(prev => [...prev, { ingredient, status }].sort((a, b) => 
+      a.ingredient.localeCompare(b.ingredient)
+    ))
     setCustomIngredient('')
-  }
+    setShowAddForm(false)
 
-  const categories = ['All', ...Array.from(new Set(commonIngredients.map(i => i.category)))]
-  
-  const filteredIngredients = selectedCategory === 'All' 
-    ? commonIngredients 
-    : commonIngredients.filter(i => i.category === selectedCategory)
-
-  const getIngredientStatus = (name: string) => {
-    if (likedIngredients.includes(name)) return 'liked'
-    if (dislikedIngredients.includes(name)) return 'disliked'
-    return 'neutral'
+    try {
+      await fetch('/api/likes-dislikes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ingredient,
+          action: 'add',
+          type: status === 'liked' ? 'like' : 'dislike'
+        })
+      })
+    } catch (error) {
+      console.error('Error adding preference:', error)
+      // Revert on error
+      fetchPreferences()
+    }
   }
 
   if (isLoading) {
@@ -177,155 +177,185 @@ export default function LikesDislikesPage() {
             <Link href="/" className="text-xl font-bold text-gray-900">
               ← Back to Home
             </Link>
-            <h1 className="text-xl font-semibold">Likes & Dislikes</h1>
+            <h1 className="text-xl font-semibold">Ingredient Preferences</h1>
           </div>
         </div>
       </nav>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Manage Your Ingredient Preferences</h2>
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">
+            Your Ingredient Preferences
+          </h2>
           <p className="text-gray-600">
-            These preferences will be used when generating recipes
+            Manage your liked and disliked ingredients. These will be used when generating recipes.
           </p>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-green-100 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-green-800 mb-2">
-              Liked Ingredients ({likedIngredients.length})
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {likedIngredients.slice(0, 10).map(ingredient => (
-                <span key={ingredient} className="bg-green-200 text-green-800 px-2 py-1 rounded-full text-sm">
-                  {ingredient}
-                </span>
-              ))}
-              {likedIngredients.length > 10 && (
-                <span className="text-green-600 text-sm">
-                  +{likedIngredients.length - 10} more
-                </span>
-              )}
+          <div className="mt-4 flex justify-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded" />
+              <span>Liked</span>
             </div>
-          </div>
-
-          <div className="bg-red-100 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
-              Disliked Ingredients ({dislikedIngredients.length})
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {dislikedIngredients.slice(0, 10).map(ingredient => (
-                <span key={ingredient} className="bg-red-200 text-red-800 px-2 py-1 rounded-full text-sm">
-                  {ingredient}
-                </span>
-              ))}
-              {dislikedIngredients.length > 10 && (
-                <span className="text-red-600 text-sm">
-                  +{dislikedIngredients.length - 10} more
-                </span>
-              )}
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-500 rounded" />
+              <span>Disliked</span>
             </div>
           </div>
         </div>
 
-        {/* Category Filter */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCategory === cat
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
+        {/* Add New Button */}
+        <div className="text-center mb-8">
+          <Button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            + Add New Ingredient
+          </Button>
+        </div>
+
+        {/* Add Form */}
+        {showAddForm && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="mb-8 max-w-md mx-auto">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Add Ingredient Preference</h3>
+                <Input
+                  type="text"
+                  value={customIngredient}
+                  onChange={(e) => setCustomIngredient(e.target.value)}
+                  placeholder="Enter ingredient name..."
+                  className="mb-4"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => addNewPreference('liked')}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    Add as Liked
+                  </Button>
+                  <Button
+                    onClick={() => addNewPreference('disliked')}
+                    className="flex-1 bg-red-600 hover:bg-red-700"
+                  >
+                    Add as Disliked
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Preferences Grid */}
+        {preferences.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-gray-600 text-lg">
+              No ingredient preferences yet. Add some to personalize your recipes!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {preferences.map((pref) => (
+              <motion.div
+                key={pref.ingredient}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.02 }}
               >
-                {cat}
-              </button>
+                <Card className={`relative border-2 transition-all ${
+                  pref.status === 'liked'
+                    ? 'bg-green-50 border-green-400'
+                    : 'bg-red-50 border-red-400'
+                }`}>
+                  <CardContent className="p-4">
+                {/* Status indicator */}
+                <div
+                  className={`absolute top-2 right-2 w-3 h-3 rounded-full ${
+                    pref.status === 'liked' ? 'bg-green-500' : 'bg-red-500'
+                  }`}
+                />
+                
+                {/* Ingredient name */}
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 pr-6">
+                  {pref.ingredient}
+                </h3>
+                
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => togglePreference(pref.ingredient)}
+                    variant="outline"
+                    size="sm"
+                    className={`flex-1 ${
+                      pref.status === 'liked'
+                        ? 'bg-red-100 hover:bg-red-200 text-red-700 border-red-300'
+                        : 'bg-green-100 hover:bg-green-200 text-green-700 border-green-300'
+                    }`}
+                  >
+                    {pref.status === 'liked' ? 'Switch to Dislike' : 'Switch to Like'}
+                  </Button>
+                  <Button
+                    onClick={() => deletePreference(pref.ingredient)}
+                    variant="outline"
+                    size="sm"
+                    className="p-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
-        </div>
+        )}
 
-        {/* Ingredients Grid */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {filteredIngredients.map(({ name }) => {
-              const status = getIngredientStatus(name)
-              return (
-                <div
-                  key={name}
-                  className="flex items-center justify-between p-3 rounded-lg border-2 transition-all"
-                  style={{
-                    borderColor: status === 'liked' ? '#10b981' : status === 'disliked' ? '#ef4444' : '#e5e7eb',
-                    backgroundColor: status === 'liked' ? '#d1fae5' : status === 'disliked' ? '#fee2e2' : '#ffffff'
-                  }}
-                >
-                  <span className="font-medium text-gray-800">{name}</span>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => toggleIngredient(name, 'like')}
-                      className={`p-1 rounded transition-colors ${
-                        status === 'liked' ? 'text-green-700' : 'text-gray-400 hover:text-green-600'
-                      }`}
-                    >
-                      👍
-                    </button>
-                    <button
-                      onClick={() => toggleIngredient(name, 'dislike')}
-                      className={`p-1 rounded transition-colors ${
-                        status === 'disliked' ? 'text-red-700' : 'text-gray-400 hover:text-red-600'
-                      }`}
-                    >
-                      👎
-                    </button>
-                  </div>
+        {/* Summary */}
+        {preferences.length > 0 && (
+          <Card className="mt-12">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Summary</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-green-700 mb-2">
+                  Liked Ingredients ({preferences.filter(p => p.status === 'liked').length})
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {preferences
+                    .filter(p => p.status === 'liked')
+                    .map(p => (
+                      <span
+                        key={p.ingredient}
+                        className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm"
+                      >
+                        {p.ingredient}
+                      </span>
+                    ))}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Custom Ingredient */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Add Custom Ingredient</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={customIngredient}
-              onChange={(e) => setCustomIngredient(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addCustomIngredient('like')}
-              placeholder="Enter ingredient name..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-            <button
-              onClick={() => addCustomIngredient('like')}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Like 👍
-            </button>
-            <button
-              onClick={() => addCustomIngredient('dislike')}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Dislike 👎
-            </button>
-          </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="text-center">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-8 py-4 bg-gradient-to-r from-orange-400 to-red-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-shadow disabled:opacity-50"
-          >
-            {isSaving ? 'Saving...' : 'Save Preferences'}
-          </motion.button>
-        </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-red-700 mb-2">
+                  Disliked Ingredients ({preferences.filter(p => p.status === 'disliked').length})
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {preferences
+                    .filter(p => p.status === 'disliked')
+                    .map(p => (
+                      <span
+                        key={p.ingredient}
+                        className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm"
+                      >
+                        {p.ingredient}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   )

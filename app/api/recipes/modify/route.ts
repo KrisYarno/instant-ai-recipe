@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         }
       ],
       temperature: 0.7,
-      max_tokens: 500
+      max_completion_tokens: 500
     })
 
     const modification = completion.choices[0].message.content || ''

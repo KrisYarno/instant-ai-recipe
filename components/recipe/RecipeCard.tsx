@@ -1,7 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import InlineModificationChat from './InlineModificationChat'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ChevronDown, Clock, Users, BarChart, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
 
 interface Ingredient {
   amount: string
@@ -23,29 +28,88 @@ interface Recipe {
   tips?: string
   customColor?: string
   customLabel?: string
+  isSaved?: boolean
 }
 
 interface RecipeCardProps {
   recipe: Recipe
-  onLike?: (ingredientIndex: number) => void
-  onDislike?: (ingredientIndex: number) => void
-  onModify?: () => void
   onConfirm?: () => void
   onReroll?: () => void
+  onRecipeUpdate?: (updatedRecipe: Recipe) => void
+  showVoting?: boolean
 }
 
 export default function RecipeCard({
   recipe,
-  onLike,
-  onDislike,
-  onModify,
   onConfirm,
-  onReroll
+  onReroll,
+  onRecipeUpdate,
+  showVoting = true
 }: RecipeCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'info'>('ingredients')
+  const [showModificationChat, setShowModificationChat] = useState(false)
+  const [localRecipe, setLocalRecipe] = useState(recipe)
+  const [userPrefs, setUserPrefs] = useState<{ liked: string[], disliked: string[] }>({ liked: [], disliked: [] })
 
-  const cardColor = recipe.customColor || 'from-orange-400 to-red-500'
+  // Update local recipe when prop changes
+  useEffect(() => {
+    setLocalRecipe(recipe)
+  }, [recipe])
+
+  // Fetch user preferences
+  useEffect(() => {
+    const fetchPrefs = async () => {
+      try {
+        const response = await fetch('/api/likes-dislikes')
+        if (response.ok) {
+          const data = await response.json()
+          setUserPrefs({ 
+            liked: data.likedIngredients || [], 
+            disliked: data.dislikedIngredients || [] 
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching preferences:', error)
+      }
+    }
+    fetchPrefs()
+  }, [])
+
+  const handleIngredientVote = async (ingredientItem: string, voteType: 'like' | 'dislike') => {
+    try {
+      const response = await fetch('/api/likes-dislikes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ingredient: ingredientItem,
+          action: 'add',
+          type: voteType
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setUserPrefs({ 
+          liked: data.likedIngredients || [], 
+          disliked: data.dislikedIngredients || [] 
+        })
+      } else {
+        console.error('Failed to save vote:', await response.text())
+      }
+    } catch (error) {
+      console.error('Error voting on ingredient:', error)
+    }
+  }
+
+  const handleRecipeUpdate = (updatedRecipe: Recipe) => {
+    setLocalRecipe(updatedRecipe)
+    if (onRecipeUpdate) {
+      onRecipeUpdate(updatedRecipe)
+    }
+  }
+
+  const cardColor = localRecipe.customColor || 'from-orange-400 to-red-500'
 
   return (
     <motion.div
@@ -59,64 +123,46 @@ export default function RecipeCard({
       <div className={`bg-gradient-to-r ${cardColor} p-6 text-white`}>
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            {recipe.customLabel && (
-              <span className="inline-block bg-white/20 px-3 py-1 rounded-full text-sm mb-2">
-                {recipe.customLabel}
-              </span>
+            {localRecipe.customLabel && (
+              <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 mb-2">
+                {localRecipe.customLabel}
+              </Badge>
             )}
-            <h3 className="text-2xl font-bold mb-2">{recipe.title}</h3>
-            {recipe.description && (
-              <p className="text-white/90">{recipe.description}</p>
+            <h3 className="text-2xl font-bold mb-2">{localRecipe.title}</h3>
+            {localRecipe.description && (
+              <p className="text-white/90">{localRecipe.description}</p>
             )}
           </div>
-          <button
+          <Button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="ml-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
+            variant="ghost"
+            size="icon"
+            className="ml-4 hover:bg-white/20 text-white"
           >
-            <svg
-              className={`w-6 h-6 transform transition-transform ${
-                isExpanded ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
+            <ChevronDown className={`w-6 h-6 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+          </Button>
         </div>
 
         {/* Quick Info */}
         <div className="flex flex-wrap gap-4 mt-4 text-sm">
           <div className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{recipe.totalTime} min</span>
+            <Clock className="w-4 h-4" />
+            <span>{localRecipe.totalTime} min</span>
           </div>
           <div className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span>{recipe.servings} servings</span>
+            <Users className="w-4 h-4" />
+            <span>{localRecipe.servings} servings</span>
           </div>
-          {recipe.difficulty && (
+          {localRecipe.difficulty && (
             <div className="flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span>{recipe.difficulty}</span>
+              <BarChart className="w-4 h-4" />
+              <span>{localRecipe.difficulty}</span>
             </div>
           )}
-          {recipe.cuisine && (
-            <span className="bg-white/20 px-2 py-1 rounded">
-              {recipe.cuisine}
-            </span>
+          {localRecipe.cuisine && (
+            <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
+              {localRecipe.cuisine}
+            </Badge>
           )}
         </div>
       </div>
@@ -131,44 +177,17 @@ export default function RecipeCard({
             style={{ maxHeight: 'calc(90vh - 200px)' }}
           >
             {/* Tabs */}
-            <div className="flex border-b">
-              <button
-                onClick={() => setActiveTab('ingredients')}
-                className={`flex-1 py-3 px-4 font-medium transition-colors ${
-                  activeTab === 'ingredients'
-                    ? 'text-orange-600 border-b-2 border-orange-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Ingredients
-              </button>
-              <button
-                onClick={() => setActiveTab('instructions')}
-                className={`flex-1 py-3 px-4 font-medium transition-colors ${
-                  activeTab === 'instructions'
-                    ? 'text-orange-600 border-b-2 border-orange-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Instructions
-              </button>
-              <button
-                onClick={() => setActiveTab('info')}
-                className={`flex-1 py-3 px-4 font-medium transition-colors ${
-                  activeTab === 'info'
-                    ? 'text-orange-600 border-b-2 border-orange-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Info & Tips
-              </button>
-            </div>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'ingredients' | 'instructions' | 'info')} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
+                <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                <TabsTrigger value="info">Info & Tips</TabsTrigger>
+              </TabsList>
 
-            {/* Tab Content */}
-            <div className="p-6">
-              {activeTab === 'ingredients' && (
+              {/* Tab Content */}
+              <TabsContent value="ingredients" className="p-6">
                 <div className="space-y-3">
-                  {recipe.ingredients.map((ingredient, index) => (
+                  {localRecipe.ingredients.map((ingredient, index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between py-2 border-b border-gray-100"
@@ -177,30 +196,44 @@ export default function RecipeCard({
                         <span className="font-medium">{ingredient.amount}</span>{' '}
                         <span>{ingredient.item}</span>
                       </div>
-                      {(onLike || onDislike) && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => onLike?.(index)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      {showVoting && (
+                        <div className="flex gap-1">
+                          <Button
+                            onClick={() => handleIngredientVote(ingredient.item, 'like')}
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 w-8 p-0 ${
+                              userPrefs.liked.includes(ingredient.item)
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                : 'text-green-600 hover:bg-green-50'
+                            }`}
+                            title="I like this ingredient"
                           >
-                            👍
-                          </button>
-                          <button
-                            onClick={() => onDislike?.(index)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            <ThumbsUp className="w-4 h-4" fill={userPrefs.liked.includes(ingredient.item) ? "currentColor" : "none"} />
+                          </Button>
+                          <Button
+                            onClick={() => handleIngredientVote(ingredient.item, 'dislike')}
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 w-8 p-0 ${
+                              userPrefs.disliked.includes(ingredient.item)
+                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                : 'text-red-600 hover:bg-red-50'
+                            }`}
+                            title="I dislike this ingredient"
                           >
-                            👎
-                          </button>
+                            <ThumbsDown className="w-4 h-4" fill={userPrefs.disliked.includes(ingredient.item) ? "currentColor" : "none"} />
+                          </Button>
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
-              )}
+              </TabsContent>
 
-              {activeTab === 'instructions' && (
+              <TabsContent value="instructions" className="p-6">
                 <ol className="space-y-4">
-                  {recipe.instructions.map((instruction, index) => (
+                  {localRecipe.instructions.map((instruction, index) => (
                     <li key={index} className="flex gap-4">
                       <span className="flex-shrink-0 w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center font-semibold">
                         {index + 1}
@@ -209,61 +242,80 @@ export default function RecipeCard({
                     </li>
                   ))}
                 </ol>
-              )}
+              </TabsContent>
 
-              {activeTab === 'info' && (
+              <TabsContent value="info" className="p-6">
                 <div className="space-y-4">
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-2">Timing</h4>
                     <p className="text-gray-600">
-                      Prep: {recipe.prepTime} min | Cook: {recipe.cookTime} min
+                      Prep: {localRecipe.prepTime} min | Cook: {localRecipe.cookTime} min
                     </p>
                   </div>
-                  {recipe.tips && (
+                  {localRecipe.tips && (
                     <div>
                       <h4 className="font-semibold text-gray-800 mb-2">Tips</h4>
-                      <p className="text-gray-600">{recipe.tips}</p>
+                      <p className="text-gray-600">{localRecipe.tips}</p>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              </TabsContent>
+            </Tabs>
 
             {/* Action Buttons */}
             <div className="p-6 bg-gray-50 space-y-3">
-              {onModify && (
-                <button
-                  onClick={onModify}
-                  className="w-full bg-blue-600 text-white font-medium py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Need Modifications?
-                </button>
-              )}
+              <Button
+                onClick={() => setShowModificationChat(!showModificationChat)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                size="lg"
+              >
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Need Modifications?
+              </Button>
               {(onConfirm || onReroll) && (
                 <div className="flex gap-3">
                   {onConfirm && (
-                    <motion.button
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={onConfirm}
-                      className="flex-1 bg-green-600 text-white font-medium py-3 px-6 rounded-lg hover:bg-green-700 transition-colors"
+                      className="flex-1"
                     >
-                      Let&apos;s go with this one
-                    </motion.button>
+                      <Button
+                        onClick={onConfirm}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        size="lg"
+                      >
+                        Let&apos;s go with this one
+                      </Button>
+                    </motion.div>
                   )}
                   {onReroll && (
-                    <motion.button
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={onReroll}
-                      className="flex-1 bg-gray-600 text-white font-medium py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors"
+                      className="flex-1"
                     >
-                      Try again
-                    </motion.button>
+                      <Button
+                        onClick={onReroll}
+                        variant="secondary"
+                        className="w-full"
+                        size="lg"
+                      >
+                        Try again
+                      </Button>
+                    </motion.div>
                   )}
                 </div>
               )}
             </div>
+            
+            {/* Inline Modification Chat */}
+            <InlineModificationChat
+              recipe={localRecipe}
+              isOpen={showModificationChat}
+              onClose={() => setShowModificationChat(false)}
+              onRecipeUpdate={handleRecipeUpdate}
+            />
           </motion.div>
         )}
       </AnimatePresence>

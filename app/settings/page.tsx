@@ -5,11 +5,17 @@ import { motion } from 'framer-motion'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
+import { ArrowLeft, Settings, Heart, Package, Bookmark, Download, LogOut, Trash2, ChevronRight, Loader2 } from 'lucide-react'
 
 export default function SettingsPage() {
   const { data: session } = useSession()
+  const { toast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/login' })
@@ -32,6 +38,7 @@ export default function SettingsPage() {
   }
 
   const handleExportData = async () => {
+    setIsExporting(true)
     try {
       const response = await fetch('/api/account/export')
       if (response.ok) {
@@ -46,9 +53,26 @@ export default function SettingsPage() {
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
+        toast({
+          title: 'Data exported',
+          description: 'Your data has been downloaded successfully'
+        })
+      } else {
+        toast({
+          title: 'Export failed',
+          description: 'Failed to export your data',
+          variant: 'destructive'
+        })
       }
     } catch (error) {
       console.error('Error exporting data:', error)
+      toast({
+        title: 'Export failed',
+        description: 'Something went wrong',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -58,8 +82,9 @@ export default function SettingsPage() {
       <nav className="bg-white shadow-md sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              ← Back to Home
+            <Link href="/" className="flex items-center gap-2 text-xl font-bold text-gray-900">
+              <ArrowLeft className="w-5 h-5" />
+              Back to Home
             </Link>
             <h1 className="text-xl font-semibold">Settings</h1>
           </div>
@@ -67,11 +92,11 @@ export default function SettingsPage() {
       </nav>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Account Info Section */}
-          <div className="p-6 border-b">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Account Information</h2>
-            
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Account Information</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="flex items-center space-x-4">
               {session?.user?.image && (
                 <Image
@@ -90,26 +115,24 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Quick Links Section */}
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Links</h3>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Quick Links</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid gap-3 md:grid-cols-2">
               <Link
                 href="/preferences"
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <Settings className="w-6 h-6 text-orange-500" />
                   <span className="font-medium">Recipe Preferences</span>
                 </div>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
               </Link>
 
               <Link
@@ -117,14 +140,10 @@ export default function SettingsPage() {
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
+                  <Heart className="w-6 h-6 text-green-500" />
                   <span className="font-medium">Likes & Dislikes</span>
                 </div>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
               </Link>
 
               <Link
@@ -132,14 +151,10 @@ export default function SettingsPage() {
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
+                  <Package className="w-6 h-6 text-blue-500" />
                   <span className="font-medium">My Pantry</span>
                 </div>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
               </Link>
 
               <Link
@@ -147,56 +162,73 @@ export default function SettingsPage() {
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                  </svg>
+                  <Bookmark className="w-6 h-6 text-purple-500" />
                   <span className="font-medium">Saved Recipes</span>
                 </div>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
               </Link>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Data Management Section */}
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Data Management</h3>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Data Management</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-3">
-              <button
+              <Button
                 onClick={handleExportData}
-                className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isExporting}
+                className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
               >
-                Export My Data
-              </button>
+                {isExporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export My Data
+                  </>
+                )}
+              </Button>
               <p className="text-sm text-gray-600">
                 Download all your recipes, preferences, and pantry items as a JSON file.
               </p>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Account Actions Section */}
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Account Actions</h3>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Account Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
-              <button
+              <Button
                 onClick={handleSignOut}
-                className="w-full md:w-auto px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                variant="secondary"
+                className="w-full md:w-auto"
               >
+                <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
-              </button>
+              </Button>
 
               <div className="pt-4 border-t">
-                <button
+                <Button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-600 hover:text-red-700 font-medium"
+                  variant="ghost"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
+                  <Trash2 className="w-4 h-4 mr-2" />
                   Delete Account
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
@@ -211,19 +243,28 @@ export default function SettingsPage() {
                 This action cannot be undone. All your recipes, preferences, and data will be permanently deleted.
               </p>
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                  variant="secondary"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleDeleteAccount}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  variant="destructive"
+                  className="flex-1"
                 >
-                  {isDeleting ? 'Deleting...' : 'Delete Account'}
-                </button>
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Account'
+                  )}
+                </Button>
               </div>
             </motion.div>
           </div>

@@ -3,14 +3,19 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import RecipeCard from '@/components/recipe/RecipeCard'
-import ModificationChat from '@/components/recipe/ModificationChat'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import { ArrowLeft, Bookmark, Settings, Loader2 } from 'lucide-react'
 import type { Recipe } from '@/types/recipe'
 
 export default function SavedRecipesPage() {
+  const { toast } = useToast()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
-  const [showModificationChat, setShowModificationChat] = useState(false)
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest')
 
@@ -41,9 +46,24 @@ export default function SavedRecipesPage() {
       })
       if (response.ok) {
         setRecipes(recipes.filter(r => r.id !== recipeId))
+        toast({
+          title: 'Recipe removed',
+          description: 'Recipe has been removed from your collection'
+        })
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to remove recipe',
+          variant: 'destructive'
+        })
       }
     } catch (error) {
       console.error('Error unsaving recipe:', error)
+      toast({
+        title: 'Error',
+        description: 'Something went wrong',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -119,8 +139,9 @@ export default function SavedRecipesPage() {
       <nav className="bg-white shadow-md sticky top-0 z-40">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              ← Back to Home
+            <Link href="/" className="flex items-center gap-2 text-xl font-bold text-gray-900">
+              <ArrowLeft className="w-5 h-5" />
+              Back to Home
             </Link>
             <h1 className="text-xl font-semibold">Saved Recipes</h1>
           </div>
@@ -139,53 +160,46 @@ export default function SavedRecipesPage() {
         {recipes.length > 0 && (
           <div className="mb-6 flex flex-wrap gap-4 justify-between items-center">
             <div className="flex flex-wrap gap-2">
-              <button
+              <Button
                 onClick={() => setFilterCategory('all')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  filterCategory === 'all'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
+                variant={filterCategory === 'all' ? 'default' : 'outline'}
+                className={filterCategory === 'all' ? 'bg-orange-500 hover:bg-orange-600' : ''}
               >
-                All ({recipes.length})
-              </button>
+                All <Badge variant="secondary" className="ml-1">{recipes.length}</Badge>
+              </Button>
               {categories.map(cat => (
-                <button
+                <Button
                   key={cat}
                   onClick={() => setFilterCategory(cat)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    filterCategory === cat
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-100'
-                  }`}
+                  variant={filterCategory === cat ? 'default' : 'outline'}
+                  className={filterCategory === cat ? 'bg-orange-500 hover:bg-orange-600' : ''}
                 >
-                  {cat} ({recipes.filter(r => r.cuisine === cat).length})
-                </button>
+                  {cat} <Badge variant="secondary" className="ml-1">{recipes.filter(r => r.cuisine === cat).length}</Badge>
+                </Button>
               ))}
             </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'name')}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="name">Name (A-Z)</option>
-            </select>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'newest' | 'oldest' | 'name')}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="name">Name (A-Z)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+            <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
           </div>
         ) : sortedRecipes.length === 0 ? (
-          <div className="text-center py-12">
+          <Card className="text-center py-12 px-6">
             <div className="mx-auto w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
+              <Bookmark className="w-12 h-12 text-gray-400" />
             </div>
             <p className="text-gray-500 text-lg mb-4">
               {filterCategory === 'all' 
@@ -193,29 +207,48 @@ export default function SavedRecipesPage() {
                 : `No ${filterCategory} recipes saved`}
             </p>
             {filterCategory !== 'all' && (
-              <button
+              <Button
                 onClick={() => setFilterCategory('all')}
-                className="text-orange-500 hover:text-orange-600 font-medium"
+                variant="link"
+                className="text-orange-500 hover:text-orange-600"
               >
                 View all recipes
-              </button>
+              </Button>
             )}
-          </div>
+          </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {sortedRecipes.map((recipe) => (
-              <div key={recipe.id} className="relative group">
-                <RecipeCard
-                  recipe={recipe}
-                  onModify={() => {
-                    setSelectedRecipe(recipe)
-                    setShowModificationChat(true)
-                  }}
-                />
+              <Card key={recipe.id} className="overflow-hidden">
+                {/* Action buttons bar */}
+                <div className="flex justify-between items-center p-3 bg-gray-50 border-b">
+                  <Button
+                    onClick={() => handleUnsaveRecipe(recipe.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Remove from saved
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const customMenu = document.getElementById(`custom-${recipe.id}`)
+                      if (customMenu) {
+                        customMenu.classList.toggle('hidden')
+                      }
+                    }}
+                    variant="ghost"
+                    size="icon"
+                    title="Customize"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </Button>
+                </div>
                 
-                {/* Customization overlay */}
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-white rounded-lg shadow-lg p-2 space-y-2">
+                {/* Customization menu (hidden by default) */}
+                <div id={`custom-${recipe.id}`} className="hidden p-3 bg-gray-50 border-b space-y-2">
+                  <div className="bg-white rounded-lg shadow-lg p-3 space-y-3">
                     {/* Color options */}
                     <div className="flex gap-1">
                       {colorOptions.map((color) => (
@@ -230,35 +263,29 @@ export default function SavedRecipesPage() {
                     </div>
                     
                     {/* Label input */}
-                    <input
+                    <Input
                       type="text"
                       placeholder="Add label..."
                       value={recipe.customLabel || ''}
                       onChange={(e) => handleUpdateLabel(recipe.id, e.target.value)}
-                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      className="text-sm"
                     />
-                    
-                    {/* Unsave button */}
-                    <button
-                      onClick={() => handleUnsaveRecipe(recipe.id)}
-                      className="w-full px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
-                    >
-                      Remove
-                    </button>
                   </div>
                 </div>
-              </div>
+                
+                <RecipeCard
+                  recipe={recipe}
+                  onRecipeUpdate={(updatedRecipe) => {
+                    setRecipes(recipes.map(r => r.id === updatedRecipe.id ? updatedRecipe : r))
+                  }}
+                />
+              </Card>
             ))}
           </div>
         )}
       </main>
 
-      {/* Modification Chat */}
-      <ModificationChat
-        recipeId={selectedRecipe?.id}
-        isOpen={showModificationChat}
-        onClose={() => setShowModificationChat(false)}
-      />
+      {/* Removed old modification chat - now inline in RecipeCard */}
     </div>
   )
 }

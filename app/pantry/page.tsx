@@ -5,6 +5,13 @@ import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/hooks/use-toast'
+import { Plus, Trash2, ChefHat, ArrowLeft } from 'lucide-react'
 
 interface PantryItem {
   id: string
@@ -29,6 +36,7 @@ const categories = [
 export default function PantryPage() {
   const { } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([])
   const [newItem, setNewItem] = useState({
     name: '',
@@ -79,6 +87,10 @@ export default function PantryPage() {
           expiryDate: ''
         })
         setIsAdding(false)
+        toast({
+          title: 'Item added',
+          description: `${data.item.name} has been added to your pantry.`
+        })
       }
     } catch (error) {
       console.error('Error adding item:', error)
@@ -93,6 +105,10 @@ export default function PantryPage() {
 
       if (response.ok) {
         setPantryItems(pantryItems.filter(item => item.id !== id))
+        toast({
+          title: 'Item removed',
+          description: 'The item has been removed from your pantry.'
+        })
       }
     } catch (error) {
       console.error('Error deleting item:', error)
@@ -145,8 +161,9 @@ export default function PantryPage() {
       <nav className="bg-white shadow-md sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              ← Back to Home
+            <Link href="/" className="flex items-center gap-2 text-xl font-bold text-gray-900">
+              <ArrowLeft className="w-5 h-5" />
+              Back to Home
             </Link>
             <h1 className="text-xl font-semibold">My Pantry</h1>
           </div>
@@ -162,14 +179,19 @@ export default function PantryPage() {
 
         {/* Add Item Button */}
         <div className="mb-6">
-          <motion.button
+          <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setIsAdding(!isAdding)}
-            className="w-full bg-gradient-to-r from-green-400 to-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
           >
-            {isAdding ? 'Cancel' : '+ Add New Item'}
-          </motion.button>
+            <Button
+              onClick={() => setIsAdding(!isAdding)}
+              className="w-full bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white"
+              size="lg"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              {isAdding ? 'Cancel' : 'Add New Item'}
+            </Button>
+          </motion.div>
         </div>
 
         {/* Add Item Form */}
@@ -177,18 +199,18 @@ export default function PantryPage() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg shadow-lg p-6 mb-6"
           >
+            <Card className="mb-6">
+              <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Item Name *
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newItem.name}
                   onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="e.g., Chicken Breast"
                 />
               </div>
@@ -197,15 +219,16 @@ export default function PantryPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Category
                 </label>
-                <select
-                  value={newItem.category}
-                  onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -213,18 +236,18 @@ export default function PantryPage() {
                   Quantity
                 </label>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="text"
                     value={newItem.quantity}
                     onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="flex-1"
                     placeholder="2"
                   />
-                  <input
+                  <Input
                     type="text"
                     value={newItem.unit}
                     onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-24"
                     placeholder="lbs"
                   />
                 </div>
@@ -234,22 +257,23 @@ export default function PantryPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Expiry Date
                 </label>
-                <input
+                <Input
                   type="date"
                   value={newItem.expiryDate}
                   onChange={(e) => setNewItem({ ...newItem, expiryDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
             </div>
 
-            <button
-              onClick={handleAddItem}
-              disabled={!newItem.name.trim()}
-              className="mt-4 w-full bg-green-600 text-white font-medium py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              Add to Pantry
-            </button>
+                <Button
+                  onClick={handleAddItem}
+                  disabled={!newItem.name.trim()}
+                  className="mt-4 w-full bg-green-600 hover:bg-green-700"
+                >
+                  Add to Pantry
+                </Button>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
 
@@ -269,15 +293,20 @@ export default function PantryPage() {
                   Generate a recipe using these ingredients
                 </p>
               </div>
-              <motion.button
+              <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={generateRecipeWithPantry}
-                disabled={isGenerating}
-                className="px-6 py-3 bg-white text-green-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
               >
-                {isGenerating ? 'Generating...' : 'Generate Recipe'}
-              </motion.button>
+                <Button
+                  onClick={generateRecipeWithPantry}
+                  disabled={isGenerating}
+                  variant="secondary"
+                  className="bg-white text-green-600 hover:bg-gray-100"
+                >
+                  <ChefHat className="w-5 h-5 mr-2" />
+                  {isGenerating ? 'Generating...' : 'Generate Recipe'}
+                </Button>
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -285,30 +314,32 @@ export default function PantryPage() {
         {/* Category Filter */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-2">
-            <button
+            <Button
               onClick={() => setSelectedCategory('All')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedCategory === 'All'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
+              variant={selectedCategory === 'All' ? 'default' : 'outline'}
+              size="sm"
+              className={selectedCategory === 'All'
+                  ? 'bg-orange-500 hover:bg-orange-600'
+                  : ''
+              }
             >
               All Items ({pantryItems.length})
-            </button>
+            </Button>
             {categories.map(cat => {
               const count = pantryItems.filter(item => item.category === cat).length
               return (
-                <button
+                <Button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    selectedCategory === cat
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-100'
-                  }`}
+                  variant={selectedCategory === cat ? 'default' : 'outline'}
+                  size="sm"
+                  className={selectedCategory === cat
+                      ? 'bg-orange-500 hover:bg-orange-600'
+                      : ''
+                  }
                 >
                   {cat} ({count})
-                </button>
+                </Button>
               )
             })}
           </div>
@@ -322,34 +353,36 @@ export default function PantryPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.02 }}
-              onClick={() => toggleItemSelection(item.name)}
-              className={`bg-white rounded-lg shadow-md p-4 relative cursor-pointer transition-all ${
-                selectedItems.includes(item.name) 
-                  ? 'ring-2 ring-green-500 bg-green-50' 
-                  : ''
-              }`}
             >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeleteItem(item.id)
-                }}
-                className="absolute top-2 right-2 text-red-500 hover:text-red-700 z-10"
+              <Card 
+                onClick={() => toggleItemSelection(item.name)}
+                className={`relative cursor-pointer transition-all ${
+                  selectedItems.includes(item.name) 
+                    ? 'ring-2 ring-green-500 bg-green-50' 
+                    : ''
+                }`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <CardContent className="p-4">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteItem(item.id)
+                    }}
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50 z-10 h-8 w-8"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
 
-              {/* Selection checkbox */}
-              <div className="absolute top-2 left-2">
-                <input
-                  type="checkbox"
-                  checked={selectedItems.includes(item.name)}
-                  onChange={() => {}}
-                  className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                />
-              </div>
+                  {/* Selection checkbox */}
+                  <div className="absolute top-2 left-2">
+                    <Checkbox
+                      checked={selectedItems.includes(item.name)}
+                      onCheckedChange={() => {}}
+                      className="h-5 w-5"
+                    />
+                  </div>
 
               <h3 className="font-semibold text-lg text-gray-800 mb-1 ml-8">{item.name}</h3>
               <p className="text-sm text-gray-600 ml-8">{item.category}</p>
@@ -365,6 +398,8 @@ export default function PantryPage() {
                   Expires: {new Date(item.expiryDate).toLocaleDateString()}
                 </p>
               )}
+                </CardContent>
+              </Card>
             </motion.div>
           ))}
         </div>
