@@ -10,8 +10,9 @@ import type { Recipe } from '@/types/recipe'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
-import { ChefHat, Clock, Menu, X, Info } from 'lucide-react'
+import { ChefHat, Clock, Menu, X, Info, Settings, Globe, Users } from 'lucide-react'
 
 export default function HomePage() {
   const { data: session, status } = useSession()
@@ -21,6 +22,15 @@ export default function HomePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null)
   const [usage, setUsage] = useState({ used: 0, remaining: 50, limit: 50 })
+  const [userPrefs, setUserPrefs] = useState<{
+    isVegan?: boolean
+    isVegetarian?: boolean
+    allergies?: string[]
+    minCookTime?: number
+    maxCookTime?: number
+    preferredProteins?: string[]
+    preferredCuisines?: string[]
+  } | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -33,6 +43,9 @@ export default function HomePage() {
     
     // Fetch usage stats
     fetchUsage()
+    
+    // Fetch user preferences
+    fetchPreferences()
   }, [])
 
   const fetchUsage = async () => {
@@ -56,6 +69,18 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Error fetching recipe:', error)
+    }
+  }
+
+  const fetchPreferences = async () => {
+    try {
+      const response = await fetch('/api/preferences')
+      if (response.ok) {
+        const data = await response.json()
+        setUserPrefs(data.preferences)
+      }
+    } catch (error) {
+      console.error('Error fetching preferences:', error)
     }
   }
 
@@ -200,17 +225,108 @@ export default function HomePage() {
           <p className="text-gray-600 mt-2">What would you like to cook today?</p>
           
           {/* Usage indicator */}
-          <Badge className="mt-4 inline-flex items-center gap-2 bg-white px-4 py-2 text-sm font-medium">
-            <ChefHat className="w-5 h-5 text-orange-500" />
-            <span>{usage.remaining} recipes remaining today</span>
-            <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-orange-400 to-red-500 transition-all"
-                style={{ width: `${(usage.remaining / usage.limit) * 100}%` }}
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <Badge className="inline-flex items-center gap-2 bg-white px-4 py-2 text-sm font-medium">
+              <ChefHat className="w-5 h-5 text-orange-500" />
+              <span>{usage.remaining} recipes remaining today</span>
+              <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-orange-400 to-red-500 transition-all"
+                  style={{ width: `${(usage.remaining / usage.limit) * 100}%` }}
+                />
+              </div>
+            </Badge>
+          </div>
+        </div>
+
+        {/* Global Preferences Toggle */}
+        <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-full ${usePreferences ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  <Settings className={`w-5 h-5 ${usePreferences ? 'text-green-600' : 'text-gray-500'}`} />
+                </div>
+                <div>
+                  <label htmlFor="global-preferences" className="font-medium text-gray-800 cursor-pointer">
+                    Use My Dietary Preferences
+                  </label>
+                  <p className="text-sm text-gray-600">
+                    {usePreferences 
+                      ? 'Recipes will respect your dietary restrictions, allergies, and preferences' 
+                      : 'Generate recipes without dietary restrictions'}
+                  </p>
+                </div>
+              </div>
+              <Checkbox
+                id="global-preferences"
+                checked={usePreferences}
+                onCheckedChange={(checked) => setUsePreferences(checked as boolean)}
+                className="h-6 w-6"
               />
             </div>
-          </Badge>
-        </div>
+            {usePreferences && (
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Link href="/preferences">
+                    <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200">
+                      <Settings className="w-3 h-3 mr-1" />
+                      Edit Preferences
+                    </Badge>
+                  </Link>
+                  <Link href="/likes-dislikes">
+                    <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200">
+                      Edit Likes/Dislikes
+                    </Badge>
+                  </Link>
+                </div>
+                {userPrefs && (
+                  <div className="text-sm text-gray-700 bg-white/50 rounded p-2 space-y-2">
+                    {(userPrefs.isVegan || userPrefs.isVegetarian || (userPrefs.allergies && userPrefs.allergies.length > 0) || (userPrefs.minCookTime && userPrefs.maxCookTime)) && (
+                      <div>
+                        <p className="font-medium mb-1">Active restrictions:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {userPrefs.isVegan && <Badge variant="outline" className="text-xs">Vegan</Badge>}
+                          {userPrefs.isVegetarian && !userPrefs.isVegan && <Badge variant="outline" className="text-xs">Vegetarian</Badge>}
+                          {userPrefs.allergies?.map((allergy: string) => (
+                            <Badge key={allergy} variant="destructive" className="text-xs">No {allergy}</Badge>
+                          ))}
+                          {userPrefs.minCookTime && userPrefs.maxCookTime && (
+                            <Badge variant="outline" className="text-xs">{userPrefs.minCookTime}-{userPrefs.maxCookTime} min</Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {userPrefs.preferredProteins && userPrefs.preferredProteins.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-1">Preferred proteins:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {userPrefs.preferredProteins.map((protein: string) => (
+                            <Badge key={protein} variant="secondary" className="text-xs bg-green-100 text-green-800">
+                              {protein}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {userPrefs.preferredCuisines && userPrefs.preferredCuisines.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-1">Preferred cuisines:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {userPrefs.preferredCuisines.map((cuisine: string) => (
+                            <Badge key={cuisine} variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                              {cuisine}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Main Action Buttons */}
         <div className="space-y-4">
@@ -247,21 +363,10 @@ export default function HomePage() {
         {/* Timeline Section */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                On a timeline?
-              </h3>
-              <label className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Use preferences?</span>
-                <input
-                  type="checkbox"
-                  checked={usePreferences}
-                  onChange={(e) => setUsePreferences(e.target.checked)}
-                  className="w-5 h-5 text-orange-500 rounded focus:ring-orange-400"
-                />
-              </label>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              On a timeline?
+            </h3>
           
             <div className="grid grid-cols-2 gap-3">
               {timelines.map((time) => (
@@ -287,7 +392,10 @@ export default function HomePage() {
         {/* Protein Section */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">Make me something with</h3>
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Make me something with
+            </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {proteins.map((protein) => (
                 <motion.div
@@ -312,7 +420,10 @@ export default function HomePage() {
         {/* Cuisine Section */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">I&apos;m in the mood for</h3>
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              I&apos;m in the mood for
+            </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {cuisines.map((cuisine) => (
                 <motion.div

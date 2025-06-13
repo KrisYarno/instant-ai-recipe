@@ -6,7 +6,13 @@ import InlineModificationChat from './InlineModificationChat'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ChevronDown, Clock, Users, BarChart, ThumbsUp, ThumbsDown, MessageSquare, X } from 'lucide-react'
+import { ChevronDown, Clock, Users, BarChart, ThumbsUp, ThumbsDown, MessageSquare, X, AlertCircle, Settings } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface Ingredient {
   amount: string
@@ -29,6 +35,8 @@ interface Recipe {
   customColor?: string
   customLabel?: string
   isSaved?: boolean
+  preferencesApplied?: boolean
+  preferencesOverridden?: string[]
 }
 
 interface RecipeCardProps {
@@ -176,6 +184,36 @@ export default function RecipeCard({
             <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
               {localRecipe.cuisine}
             </Badge>
+          )}
+          {localRecipe.preferencesApplied && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="bg-green-600/20 text-white hover:bg-green-600/30">
+                    <Settings className="w-3 h-3 mr-1" />
+                    Preferences Applied
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>This recipe respects your dietary preferences</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {localRecipe.preferencesOverridden && localRecipe.preferencesOverridden.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="bg-yellow-600/20 text-white hover:bg-yellow-600/30">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    Modified
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Some preferences were overridden: {localRecipe.preferencesOverridden.join(', ')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>

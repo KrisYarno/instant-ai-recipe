@@ -32,7 +32,7 @@ export async function GET() {
       remaining = Math.max(0, 50 - used)
     } catch (error) {
       // If table doesn't exist, return default values
-      if ((error as any).code === 'P2021') {
+      if ((error as Error & { code?: string }).code === 'P2021') {
         console.warn('DailyRecipeGeneration table not found. Run migrations to enable rate limiting.')
       } else {
         throw error
