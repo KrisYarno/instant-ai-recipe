@@ -6,7 +6,7 @@ import InlineModificationChat from './InlineModificationChat'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ChevronDown, Clock, Users, BarChart, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
+import { ChevronDown, Clock, Users, BarChart, ThumbsUp, ThumbsDown, MessageSquare, X } from 'lucide-react'
 
 interface Ingredient {
   amount: string
@@ -112,15 +112,24 @@ export default function RecipeCard({
   const cardColor = localRecipe.customColor || 'from-orange-400 to-red-500'
 
   return (
-    <motion.div
-      layout
-      className={`bg-white rounded-2xl shadow-lg overflow-hidden ${
-        isExpanded ? 'fixed inset-4 z-50 md:relative md:inset-auto' : ''
-      }`}
-      style={{ maxHeight: isExpanded ? '90vh' : 'auto' }}
-    >
+    <>
+      {/* Backdrop for mobile */}
+      {isExpanded && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
+      
+      <motion.div
+        layout
+        className={`bg-white rounded-2xl shadow-lg overflow-hidden ${
+          isExpanded ? 'fixed inset-4 z-50 md:relative md:inset-auto flex flex-col' : ''
+        }`}
+        style={{ maxHeight: isExpanded ? '90vh' : 'auto' }}
+      >
       {/* Header */}
-      <div className={`bg-gradient-to-r ${cardColor} p-6 text-white`}>
+      <div className={`bg-gradient-to-r ${cardColor} ${isExpanded ? 'p-4' : 'p-6'} text-white`}>
         <div className="flex justify-between items-start">
           <div className="flex-1">
             {localRecipe.customLabel && (
@@ -128,8 +137,8 @@ export default function RecipeCard({
                 {localRecipe.customLabel}
               </Badge>
             )}
-            <h3 className="text-2xl font-bold mb-2">{localRecipe.title}</h3>
-            {localRecipe.description && (
+            <h3 className={`font-bold ${isExpanded ? 'text-xl' : 'text-2xl mb-2'}`}>{localRecipe.title}</h3>
+            {localRecipe.description && !isExpanded && (
               <p className="text-white/90">{localRecipe.description}</p>
             )}
           </div>
@@ -139,12 +148,16 @@ export default function RecipeCard({
             size="icon"
             className="ml-4 hover:bg-white/20 text-white"
           >
-            <ChevronDown className={`w-6 h-6 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            {isExpanded ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <ChevronDown className="w-6 h-6" />
+            )}
           </Button>
         </div>
 
-        {/* Quick Info */}
-        <div className="flex flex-wrap gap-4 mt-4 text-sm">
+        {/* Quick Info - More compact when expanded */}
+        <div className={`flex flex-wrap gap-4 ${isExpanded ? 'mt-2' : 'mt-4'} text-sm`}>
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
             <span>{localRecipe.totalTime} min</span>
@@ -153,13 +166,13 @@ export default function RecipeCard({
             <Users className="w-4 h-4" />
             <span>{localRecipe.servings} servings</span>
           </div>
-          {localRecipe.difficulty && (
+          {localRecipe.difficulty && !isExpanded && (
             <div className="flex items-center gap-1">
               <BarChart className="w-4 h-4" />
               <span>{localRecipe.difficulty}</span>
             </div>
           )}
-          {localRecipe.cuisine && (
+          {localRecipe.cuisine && !isExpanded && (
             <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
               {localRecipe.cuisine}
             </Badge>
@@ -173,8 +186,8 @@ export default function RecipeCard({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-y-auto"
-            style={{ maxHeight: 'calc(90vh - 200px)' }}
+            className="flex-1 overflow-y-auto overscroll-contain"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'ingredients' | 'instructions' | 'info')} className="w-full">
@@ -320,5 +333,6 @@ export default function RecipeCard({
         )}
       </AnimatePresence>
     </motion.div>
+    </>
   )
 }
