@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface ModificationChatProps {
-  recipeId: string
+  recipeId?: string
   isOpen: boolean
   onClose: () => void
   onApplyModification?: (modification: string) => void
@@ -24,7 +24,7 @@ export default function ModificationChat({
   }>>([])
 
   const handleSend = async () => {
-    if (!message.trim() || isLoading) return
+    if (!message.trim() || isLoading || !recipeId) return
 
     const userMessage = message
     setMessage('')

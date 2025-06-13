@@ -94,9 +94,9 @@ export default function SavedRecipesPage() {
   const sortedRecipes = [...filteredRecipes].sort((a, b) => {
     switch (sortBy) {
       case 'newest':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       case 'oldest':
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
       case 'name':
         return a.title.localeCompare(b.title)
       default:
