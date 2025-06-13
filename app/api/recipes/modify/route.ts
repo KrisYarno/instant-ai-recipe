@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     // Generate modification suggestion
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "o4-mini",
       messages: [
         {
           role: "system",
