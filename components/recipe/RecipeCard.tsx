@@ -124,7 +124,7 @@ export default function RecipeCard({
       {/* Backdrop for mobile */}
       {isExpanded && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+          className="fixed inset-0 bg-black/75 z-40 md:hidden" 
           onClick={() => setIsExpanded(false)}
         />
       )}
@@ -141,7 +141,7 @@ export default function RecipeCard({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             {localRecipe.customLabel && (
-              <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 mb-2">
+              <Badge variant="secondary" className="bg-white text-gray-800 hover:bg-gray-100 mb-2 shadow-sm">
                 {localRecipe.customLabel}
               </Badge>
             )}
@@ -151,10 +151,13 @@ export default function RecipeCard({
             )}
           </div>
           <Button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsExpanded(!isExpanded)
+            }}
             variant="ghost"
             size="icon"
-            className="ml-4 hover:bg-white/20 text-white"
+            className="ml-4 hover:bg-white/30 text-white relative z-20 transition-colors"
           >
             {isExpanded ? (
               <X className="w-6 h-6" />
@@ -181,7 +184,7 @@ export default function RecipeCard({
             </div>
           )}
           {localRecipe.cuisine && !isExpanded && (
-            <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
+            <Badge variant="secondary" className="bg-white text-gray-800 hover:bg-gray-100 shadow-sm">
               {localRecipe.cuisine}
             </Badge>
           )}
@@ -189,7 +192,7 @@ export default function RecipeCard({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="bg-green-600/20 text-white hover:bg-green-600/30">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
                     <Settings className="w-3 h-3 mr-1" />
                     Preferences Applied
                   </Badge>
@@ -204,7 +207,7 @@ export default function RecipeCard({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="bg-yellow-600/20 text-white hover:bg-yellow-600/30">
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200">
                     <AlertCircle className="w-3 h-3 mr-1" />
                     Modified
                   </Badge>

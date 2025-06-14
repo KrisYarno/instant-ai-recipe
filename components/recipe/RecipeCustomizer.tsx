@@ -126,8 +126,8 @@ export default function RecipeCustomizer({
           Customize
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <Card className="border-0 shadow-none">
+      <PopoverContent className="w-80 p-0 bg-white border-gray-200 shadow-lg" align="start">
+        <Card className="border-0 shadow-none bg-white">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-orange-500" />

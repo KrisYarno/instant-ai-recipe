@@ -244,7 +244,7 @@ export default function SavedRecipesPage() {
             {sortedRecipes.map((recipe) => (
               <div key={recipe.id} className="group relative">
                 {/* Action buttons bar */}
-                <div className="absolute top-0 right-0 z-10 flex gap-2 p-2 bg-white/90 backdrop-blur-sm rounded-bl-lg shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 left-2 z-10 flex gap-2 p-2 bg-white backdrop-blur-sm rounded-lg shadow-md border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
                   <RecipeCustomizer
                     recipeId={recipe.id}
                     currentColor={recipe.customColor}
@@ -252,7 +252,10 @@ export default function SavedRecipesPage() {
                     onUpdate={(updates) => handleUpdateRecipe(recipe.id, updates)}
                   />
                   <Button
-                    onClick={() => handleUnsaveRecipe(recipe.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleUnsaveRecipe(recipe.id)
+                    }}
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700 hover:bg-red-50 gap-2"

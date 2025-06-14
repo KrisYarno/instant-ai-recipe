@@ -13,8 +13,16 @@ A mobile-first Progressive Web App that generates Instant Pot recipes using AI. 
 ### User Features
 - **Google OAuth authentication**: Secure login with Google
 - **Digital pantry**: Track ingredients you have on hand
-- **Dietary preferences**: Set allergies, dietary restrictions, preferred cuisines and proteins
-- **Recipe management**: Save favorites, track recent recipes, customize with colors and labels
+- **Enhanced preferences system**: 
+  - Dietary restrictions and allergies (strictly enforced)
+  - Preferred proteins/cuisines (AI must pick from these)
+  - Likes (suggestions) and dislikes (strict restrictions)
+  - Global toggle with intelligent override handling
+- **Recipe management**: 
+  - Save favorites with 9 custom color themes
+  - Custom labels with quick suggestions
+  - Search and filter by cuisine or label
+  - Track recent recipes automatically
 - **Ingredient voting**: Like/dislike ingredients on recipe cards
 - **Recipe modifications**: Chat interface to adjust recipes in real-time
 
